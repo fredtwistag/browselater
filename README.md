@@ -1,96 +1,99 @@
-# BrowseLater — Build Handoff
+# BrowseLater
 
-This folder is the implementation handoff for **BrowseLater** (browselater.com), a personal web app for saving links and turning them into a personalized knowledge library.
+A personal web app for saving links (articles, YouTube, PDFs, images), extracting their content, and producing per-item detail pages with an extensive summary, key takeaways, and **personalized AI insights** mapped to your five life contexts (Personal, Family, Wealth, Health, Twistag).
 
-The full product spec lives in [`PRD.md`](./PRD.md). Project conventions and locked decisions are in [`CLAUDE.md`](./CLAUDE.md) (Claude Code loads this automatically). The build is split into four phases under [`tasks/`](./tasks/).
-
----
-
-## What this folder is
-
-```
-browselater/
-├── README.md              # you are here
-├── PRD.md                 # full product spec
-├── CLAUDE.md              # project context Claude Code auto-loads
-└── tasks/
-    ├── phase-0.md         # foundations: repo, Vercel, Supabase, auth, schema
-    ├── phase-1.md         # the save loop: paste URL → extract → list
-    ├── phase-2.md         # AI layer: summary, insights, search, chat
-    └── phase-3.md         # polish: typography, motion, dark mode, a11y
-```
-
-There is **no code yet** — only the spec and the plan. Claude Code will scaffold the Next.js project as part of phase 0.
+Full spec: [`PRD.md`](./PRD.md). Conventions and locked decisions: [`CLAUDE.md`](./CLAUDE.md). Phased work: [`tasks/`](./tasks/).
 
 ---
 
-## How to start the build with Claude Code
-
-### 1. Move this folder somewhere git-tracked
-
-Copy or move `browselater/` to wherever you keep code (e.g. `~/code/browselater`). Then:
+## Getting started locally
 
 ```bash
-cd ~/code/browselater
-git init && git add . && git commit -m "chore: import PRD + phase plan"
+# 1. Install
+npm install
+npx playwright install --with-deps chromium
+
+# 2. Configure env
+cp .env.example .env.local
+#    then fill in:
+#    - NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY
+#    - ANTHROPIC_API_KEY
+#    - VOYAGE_API_KEY (for embeddings + semantic search; without it, search is FTS-only)
+#    - BOOKMARKLET_SIGNING_SECRET (any 32+ char random string)
+
+# 3. Push the schema to Supabase
+supabase link --project-ref <your-project-ref>
+supabase db push
+
+# 4. Generate DB types (optional — hand-typed types in lib/db/types.ts are kept in sync)
+supabase gen types typescript --linked > lib/db/database.types.ts
+
+# 5. Run
+npm run dev
 ```
 
-### 2. Open it in Claude Code
+Open http://localhost:3000 — you'll be redirected to `/login`.
 
-In your terminal, from inside the folder:
+## Scripts
 
-```bash
-claude
+| Command             | Purpose            |
+| ------------------- | ------------------ |
+| `npm run dev`       | Next.js dev server |
+| `npm run build`     | Production build   |
+| `npm run lint`      | ESLint             |
+| `npm run typecheck` | `tsc --noEmit`     |
+| `npm test`          | Vitest unit tests  |
+| `npm run test:e2e`  | Playwright e2e     |
+| `npm run format`    | Prettier           |
+
+## Architecture (one-paragraph)
+
+Next.js App Router + Server Actions for writes, Supabase (Postgres + pgvector) for data, Supabase Auth (magic link + Google), Supabase Storage for snapshots/PDFs/images. Save flow: `POST /api/save` resolves canonical URL → inserts placeholder → fires `enqueueExtract` → `/api/worker/extract` runs the extractor pipeline (article/YouTube/PDF/image) → AI pipeline runs Claude Haiku for summary+tags and Claude Sonnet for personalized insights, with the user profile injected into the system prompt. Vercel AI SDK is the only LLM interface; Voyage AI handles embeddings (1024-dim, IVFFlat). Chat uses RAG over those embeddings with FTS fallback. UI is shadcn/Tailwind. Detail page is single-column reading column for the summary + an at-a-glance sticky card and insight cards mapped to context tints.
+
+## Deploy notes
+
+- **Vercel**: standard Next.js project. Add the env vars from `.env.example` to both Production and Preview.
+- **`maxDuration`** on `/api/worker/extract` is set to 300s — works on Vercel Pro; on Hobby you'll hit 60s and large transcripts may not complete. Move the worker to Inngest later if this becomes a problem (see [`tasks/phase-1.md`](./tasks/phase-1.md)).
+- **Playwright** for YouTube scraping needs Chromium installed in the runtime. On Vercel, this means the `nodejs` runtime and either the `playwright` package's bundled browsers (sometimes too large) or `@sparticuz/chromium` (smaller, recommended for prod). The current code uses bare `playwright`; switch to `@sparticuz/chromium` if Vercel rejects the bundle size.
+- **Supabase Realtime**: enable on the `items` table so the detail page can subscribe to status changes. Without it, the page falls back to a 5s poll.
+
+## Where things live
+
+```
+app/
+  (auth)/login/           # magic link + Google OAuth UI
+  (app)/                  # signed-in shell
+    feed/                 # list view
+    item/[id]/            # detail page
+    chat/                 # chat with library
+    search/               # FTS + semantic search
+    settings/profile/     # personalization profile editor + bookmarklet
+  api/
+    save/                 # POST URL → create item + enqueue
+    bookmarklet/          # bookmarklet endpoint (signed token)
+    chat/                 # SSE streaming via Vercel AI SDK
+    worker/extract/       # background pipeline entry
+  auth/callback/          # OAuth/Magic-link return
+components/
+  ui/                     # shadcn primitives
+  feed/                   # list view components
+  detail/                 # detail page components
+  shell/                  # top nav, etc.
+lib/
+  ai/                     # Claude clients + prompts + chunking + embeddings
+  db/                     # typed Supabase types
+  extract/                # url canonicalization + per-type extractors
+  search/                 # FTS + semantic merge
+  supabase/               # browser / server / service / middleware clients
+workers/
+  jobs/                   # extract + ai pipelines
+  queue.ts                # enqueue helper
+supabase/
+  migrations/             # SQL schema (PRD §9.5)
+tests/
+  e2e/                    # Playwright
 ```
 
-Claude Code auto-loads `CLAUDE.md` from the project root.
+## Privacy
 
-### 3. Kick off phase 0
-
-Paste this as the first prompt:
-
-> Read `PRD.md` and `tasks/phase-0.md`, then execute phase 0. Stop after each task in 0.1–0.6 to let me approve before continuing.
-
-Claude Code will read the spec, scaffold the Next.js + Tailwind project, wire up Supabase, deploy to Vercel, and check off boxes in `tasks/phase-0.md` as it goes.
-
-### 4. Continue phase by phase
-
-After phase 0 is green, start phase 1:
-
-> Phase 0 is complete. Read `tasks/phase-1.md` and execute it task by task, stopping to confirm any architectural choices not already in CLAUDE.md.
-
-Repeat for phases 2 and 3.
-
----
-
-## What you'll need before kicking off
-
-| Need | Where |
-|---|---|
-| Vercel account | https://vercel.com |
-| Supabase account | https://supabase.com |
-| Anthropic API key | https://console.anthropic.com |
-| Google OAuth client (optional, magic-link works alone) | https://console.cloud.google.com |
-| `browselater.com` registered + DNS pointable to Vercel | your registrar |
-
-Put the secrets in Vercel's project env vars; never commit them. `CLAUDE.md` lists which envs the code expects.
-
----
-
-## Working effectively with Claude Code on this project
-
-- **Trust but verify.** Read the diffs in each PR before merging.
-- **Push back when needed.** If Claude Code reaches for a library that's not in `CLAUDE.md`'s locked stack, ask why and steer it back.
-- **Update the PRD when reality changes.** If you decide mid-build to swap a library or change the data model, edit `PRD.md` and `CLAUDE.md` so future sessions see the new truth.
-- **Keep tasks small.** If Claude Code wants to bundle three tasks into one PR, ask it to split.
-
----
-
-## When you've finished v1
-
-Hand the live URL to yourself, save 20 things across types, and run through PRD §11 leading metrics for 30 days. Then either:
-
-- Promote P1 items from PRD §8.1 into a `tasks/phase-4.md` based on what you actually missed, or
-- Sit with v1 and let usage tell you what's next.
-
-Resist the urge to ship the browser extension or PWA before you've used v1 for two real weeks.
+No 3rd-party analytics SDKs. Events log to our own `events` Postgres table. Data sent externally: Claude API + YouTube page scrape only. Personalization profile is sent to Claude with every save (PRD §6.3 privacy note).

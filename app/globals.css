@@ -1,0 +1,124 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 36 33% 99%; /* warm off-white */
+    --foreground: 220 13% 13%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 220 13% 13%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 13% 13%;
+
+    --primary: 222 47% 35%; /* deep blue */
+    --primary-foreground: 36 33% 99%;
+
+    --secondary: 220 14% 96%;
+    --secondary-foreground: 220 13% 13%;
+
+    --muted: 220 14% 96%;
+    --muted-foreground: 220 8% 46%;
+
+    --accent: 220 14% 96%;
+    --accent-foreground: 220 13% 13%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 36 33% 99%;
+
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 222 47% 35%;
+
+    --radius: 0.625rem;
+
+    /* Context tints — soft, one per context */
+    --context-personal: 280 70% 95%;
+    --context-family: 20 90% 95%;
+    --context-wealth: 145 50% 94%;
+    --context-health: 200 70% 94%;
+    --context-twistag: 45 90% 92%;
+  }
+
+  .dark {
+    --background: 222 18% 9%;
+    --foreground: 220 14% 96%;
+
+    --card: 222 17% 11%;
+    --card-foreground: 220 14% 96%;
+
+    --popover: 222 17% 11%;
+    --popover-foreground: 220 14% 96%;
+
+    --primary: 217 91% 70%;
+    --primary-foreground: 222 18% 9%;
+
+    --secondary: 222 14% 16%;
+    --secondary-foreground: 220 14% 96%;
+
+    --muted: 222 14% 16%;
+    --muted-foreground: 220 9% 64%;
+
+    --accent: 222 14% 16%;
+    --accent-foreground: 220 14% 96%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 220 14% 96%;
+
+    --border: 222 14% 20%;
+    --input: 222 14% 20%;
+    --ring: 217 91% 70%;
+
+    --context-personal: 280 40% 22%;
+    --context-family: 20 50% 22%;
+    --context-wealth: 145 30% 20%;
+    --context-health: 200 40% 20%;
+    --context-twistag: 45 50% 22%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings:
+      "rlig" 1,
+      "calt" 1;
+  }
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+}
+
+@layer utilities {
+  .shimmer-bg {
+    background: linear-gradient(
+      90deg,
+      hsl(var(--muted)) 0%,
+      hsl(var(--accent)) 50%,
+      hsl(var(--muted)) 100%
+    );
+    background-size: 200% 100%;
+  }
+
+  /* Reading column for the detail page summary (PRD §13.2) */
+  .reading-column {
+    max-width: 70ch;
+    font-family: var(--font-source-serif), ui-serif, Georgia, serif;
+    font-size: 1.0625rem;
+    line-height: 1.65;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.001ms !important;
+      transition-duration: 0.001ms !important;
+    }
+  }
+}
