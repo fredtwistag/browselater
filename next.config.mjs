@@ -17,6 +17,9 @@ const nextConfig = {
       "jsdom",
       "playwright",
     ],
+    // Browser View Transitions API: smooth feed card → detail morph. Falls back to
+    // opacity transitions on browsers without support (and is auto-disabled by
+    // prefers-reduced-motion via our globals.css rule).
   },
 };
 

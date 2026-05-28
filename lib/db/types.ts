@@ -29,6 +29,7 @@ type ItemRow = {
   author: string | null;
   published_at: string | null;
   hero_image_url: string | null;
+  hero_image_alt: string | null;
   read_time_minutes: number | null;
   status: ItemStatus;
   error_message: string | null;
@@ -120,6 +121,16 @@ type EventRow = {
   created_at: string;
 };
 
+type ErrorRow = {
+  id: string;
+  user_id: string | null;
+  source: string;
+  message: string;
+  stack: string | null;
+  context: Record<string, unknown> | null;
+  created_at: string;
+};
+
 export interface Database {
   __InternalSupabase: {
     PostgrestVersion: "12";
@@ -200,6 +211,12 @@ export interface Database {
         Row: EventRow;
         Insert: Partial<Omit<EventRow, "id" | "created_at">> & { event_name: string };
         Update: Partial<EventRow>;
+        Relationships: NoRel;
+      };
+      errors: {
+        Row: ErrorRow;
+        Insert: Partial<Omit<ErrorRow, "id" | "created_at">> & { source: string; message: string };
+        Update: Partial<ErrorRow>;
         Relationships: NoRel;
       };
     };

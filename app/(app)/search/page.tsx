@@ -29,9 +29,36 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
         />
       </form>
       {query.length < 2 ? (
-        <p className="text-sm text-muted-foreground">Type at least 2 characters.</p>
+        <div className="space-y-3">
+          <p className="text-sm text-muted-foreground">Type at least 2 characters.</p>
+          <div>
+            <p className="mb-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+              Try
+            </p>
+            <ul className="flex flex-wrap gap-2">
+              {[
+                "pricing experiments",
+                "morning routine",
+                "discovery call",
+                "zone 2 cardio",
+                "agentic eval",
+              ].map((q) => (
+                <li key={q}>
+                  <Link
+                    href={`/search?q=${encodeURIComponent(q)}`}
+                    className="rounded-full border bg-card px-3 py-1 text-sm hover:bg-accent"
+                  >
+                    {q}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
       ) : hits.length === 0 ? (
-        <p className="text-sm text-muted-foreground">No matches.</p>
+        <p className="text-sm text-muted-foreground">
+          No matches for <strong>{query}</strong>. Try a broader phrase.
+        </p>
       ) : (
         <ul className="space-y-3">
           {hits.map((h) => (

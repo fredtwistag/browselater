@@ -2,6 +2,7 @@ import { requireUser, createClient } from "@/lib/supabase/server";
 import { FeedHeader } from "@/components/feed/feed-header";
 import { FeedList } from "@/components/feed/feed-list";
 import { EmptyState } from "@/components/feed/empty-state";
+import { FeedShortcuts } from "@/components/feed/feed-shortcuts";
 
 export const dynamic = "force-dynamic";
 
@@ -17,7 +18,7 @@ export default async function FeedPage({ searchParams }: FeedPageProps) {
   let query = supabase
     .from("items")
     .select(
-      "id, title, canonical_url, type, hero_image_url, status, read_time_minutes, is_paywalled, source_domain, created_at, archived_at",
+      "id, title, canonical_url, type, hero_image_url, hero_image_alt, status, read_time_minutes, is_paywalled, source_domain, created_at, archived_at",
     )
     .eq("user_id", user.id)
     .is("deleted_at", null)
@@ -34,13 +35,17 @@ export default async function FeedPage({ searchParams }: FeedPageProps) {
 
   return (
     <div className="container max-w-6xl py-8">
+      <FeedShortcuts />
       <FeedHeader />
       {error ? (
         <div className="mt-8 rounded-lg border border-destructive/40 bg-destructive/5 p-6 text-sm text-destructive">
           Could not load feed: {error.message}
         </div>
       ) : !items || items.length === 0 ? (
-        <EmptyState />
+        <EmptyState
+          filtered={params.filter === "archived"}
+          filterLabel={params.filter === "archived" ? "Archived" : undefined}
+        />
       ) : (
         <FeedList items={items} />
       )}

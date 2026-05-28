@@ -13,7 +13,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
-    "prepare": "husky install"
+    "prepare": "husky"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^1.0.0",
@@ -25,6 +25,7 @@
     "@radix-ui/react-popover": "^1.1.2",
     "@radix-ui/react-slot": "^1.1.0",
     "@radix-ui/react-toast": "^1.2.2",
+    "@shikijs/rehype": "^4.1.0",
     "@supabase/ssr": "^0.10.3",
     "@supabase/supabase-js": "^2.46.1",
     "ai": "^4.0.0",
@@ -47,6 +48,7 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.11.3",
     "@playwright/test": "^1.49.0",
     "@testing-library/dom": "^10.4.0",
     "@testing-library/jest-dom": "^6.6.3",

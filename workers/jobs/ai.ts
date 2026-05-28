@@ -2,6 +2,7 @@ import { generateObject } from "ai";
 import { createServiceClient } from "@/lib/supabase/service";
 import { logEvent } from "@/lib/events";
 import { log } from "@/lib/log";
+import { captureError } from "@/lib/errors";
 import { chunkText } from "@/lib/ai/chunk";
 import { embedBatch } from "@/lib/ai/embeddings";
 import { haiku, sonnet } from "@/lib/ai/claude";
@@ -47,8 +48,8 @@ export async function runAiPipeline({ itemId, userId }: AiInput): Promise<void> 
     url: item.canonical_url,
     type: item.type,
     text: content.raw_text,
-  }).catch((err) => {
-    log.error("ai.summary.failed", { itemId, err: errMsg(err) });
+  }).catch(async (err) => {
+    await captureError("ai.summary", err, { itemId }, userId);
     return null;
   });
 
@@ -81,8 +82,8 @@ export async function runAiPipeline({ itemId, userId }: AiInput): Promise<void> 
     summary: summary.summary_md,
     takeaways: summary.takeaways_md,
     profileMd,
-  }).catch((err) => {
-    log.error("ai.insights.failed", { itemId, err: errMsg(err) });
+  }).catch(async (err) => {
+    await captureError("ai.insights", err, { itemId }, userId);
     return null;
   });
 
@@ -203,8 +204,4 @@ async function saveTags(itemId: string, userId: string, tags: string[]): Promise
       await supabase.from("item_tags").upsert({ item_id: itemId, tag_id: tagId, source: "ai" });
     }
   }
-}
-
-function errMsg(err: unknown) {
-  return err instanceof Error ? err.message : String(err);
 }

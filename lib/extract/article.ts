@@ -63,6 +63,7 @@ export async function extractArticle(
   const ogImage =
     doc.querySelector('meta[property="og:image"]')?.getAttribute("content") ??
     doc.querySelector('meta[name="twitter:image"]')?.getAttribute("content");
+  const heroAlt = pickHeroAlt(doc, parsed.title);
   const publishedMeta =
     doc.querySelector('meta[property="article:published_time"]')?.getAttribute("content") ??
     doc.querySelector("time[datetime]")?.getAttribute("datetime");
@@ -72,12 +73,28 @@ export async function extractArticle(
     author: parsed.byline ?? null,
     publishedAt: publishedMeta ?? null,
     heroImageUrl: ogImage ?? null,
+    heroImageAlt: heroAlt,
     rawText: parsed.textContent.trim().slice(0, 80_000),
     htmlSnapshot: html.slice(0, 2_000_000),
     readTimeMinutes: estimateReadTimeMinutes(parsed.textContent),
     effectiveType: "article",
     isPaywalled,
   };
+}
+
+function pickHeroAlt(doc: Document, title: string | null | undefined): string | null {
+  const ogAlt =
+    doc.querySelector('meta[property="og:image:alt"]')?.getAttribute("content") ??
+    doc.querySelector('meta[name="twitter:image:alt"]')?.getAttribute("content");
+  if (ogAlt && ogAlt.trim()) return ogAlt.trim();
+
+  // Try the first reasonably large img inside an <article> or <main> tag.
+  const candidate = doc.querySelector(
+    "article img[alt]:not([alt='']), main img[alt]:not([alt=''])",
+  ) as HTMLImageElement | null;
+  if (candidate?.alt) return candidate.alt.trim();
+
+  return title?.trim() ?? null;
 }
 
 function paywalledStub(url: string, reason: string): ExtractedContent {

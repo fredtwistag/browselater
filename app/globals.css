@@ -95,6 +95,26 @@
 }
 
 @layer utilities {
+  /* View Transitions API — keep durations modest, ease-out feel. */
+  ::view-transition-group(*) {
+    animation-duration: 280ms;
+    animation-timing-function: cubic-bezier(0.22, 0.61, 0.36, 1);
+  }
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation-duration: 180ms;
+  }
+
+  /* Shiki dual-theme: github-light default; switch when .dark is on the html root. */
+  html.dark .shiki,
+  html.dark .shiki span {
+    color: var(--shiki-dark) !important;
+    background-color: var(--shiki-dark-bg) !important;
+    font-style: var(--shiki-dark-font-style) !important;
+    font-weight: var(--shiki-dark-font-weight) !important;
+    text-decoration: var(--shiki-dark-text-decoration) !important;
+  }
+
   .shimmer-bg {
     background: linear-gradient(
       90deg,

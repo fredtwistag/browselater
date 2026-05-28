@@ -9,6 +9,7 @@ import { OriginalMedia } from "@/components/detail/original-media";
 import { ItemNotes } from "@/components/detail/item-notes";
 import { ItemActions } from "@/components/detail/item-actions";
 import { LiveRefresh } from "@/components/detail/live-refresh";
+import { FailedNote } from "@/components/detail/failed-note";
 
 export const dynamic = "force-dynamic";
 
@@ -24,7 +25,7 @@ export default async function DetailPage({ params }: DetailPageProps) {
   const { data: item } = await supabase
     .from("items")
     .select(
-      "id, title, author, published_at, hero_image_url, canonical_url, original_url, type, status, error_message, is_paywalled, source_domain, read_time_minutes, created_at, archived_at",
+      "id, title, author, published_at, hero_image_url, hero_image_alt, canonical_url, original_url, type, status, error_message, is_paywalled, source_domain, read_time_minutes, created_at, archived_at, user_notes",
     )
     .eq("id", id)
     .eq("user_id", user.id)
@@ -84,7 +85,7 @@ export default async function DetailPage({ params }: DetailPageProps) {
           ) : isPending ? (
             <PendingNote message="Summary will appear here." />
           ) : item.status === "failed" ? (
-            <FailedNote reason={item.error_message ?? "extraction failed"} />
+            <FailedNote itemId={item.id} reason={item.error_message ?? "extraction failed"} />
           ) : null}
 
           {latestAi?.takeaways_md && <TakeawaysSection takeawaysMd={latestAi.takeaways_md} />}
@@ -93,7 +94,7 @@ export default async function DetailPage({ params }: DetailPageProps) {
 
           <OriginalMedia item={item} content={content ?? null} />
 
-          <ItemNotes itemId={item.id} initialNotes={""} />
+          <ItemNotes itemId={item.id} initialNotes={item.user_notes ?? ""} />
         </article>
 
         <aside className="space-y-6 lg:sticky lg:top-20 lg:self-start">
@@ -126,14 +127,6 @@ function PendingNote({ message }: { message: string }) {
         </span>
         Working on it… {message}
       </div>
-    </div>
-  );
-}
-
-function FailedNote({ reason }: { reason: string }) {
-  return (
-    <div className="rounded-md border border-destructive/30 bg-destructive/5 p-6 text-sm text-destructive">
-      Extraction failed: {reason}
     </div>
   );
 }

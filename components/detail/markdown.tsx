@@ -1,6 +1,7 @@
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import rehypeSanitize from "rehype-sanitize";
+import rehypeSanitize, { defaultSchema } from "rehype-sanitize";
+import rehypeShiki from "@shikijs/rehype";
 import { cn } from "@/lib/utils";
 
 interface MarkdownProps {
@@ -8,12 +9,33 @@ interface MarkdownProps {
   className?: string;
 }
 
+// Allow Shiki's color/background-color inline styles to survive sanitization.
+const sanitizeSchema = {
+  ...defaultSchema,
+  attributes: {
+    ...defaultSchema.attributes,
+    "*": [...(defaultSchema.attributes?.["*"] ?? []), "className", "style"],
+    code: [...(defaultSchema.attributes?.code ?? []), "className", "style"],
+    pre: [...(defaultSchema.attributes?.pre ?? []), "className", "style", "tabIndex"],
+    span: [...(defaultSchema.attributes?.span ?? []), "className", "style"],
+  },
+};
+
 export function Markdown({ children, className }: MarkdownProps) {
   return (
     <div className={cn("prose-markdown", className)}>
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
-        rehypePlugins={[rehypeSanitize]}
+        rehypePlugins={[
+          [
+            rehypeShiki,
+            {
+              themes: { light: "github-light", dark: "github-dark" },
+              defaultColor: false,
+            },
+          ],
+          [rehypeSanitize, sanitizeSchema],
+        ]}
         components={{
           h2: ({ children }) => (
             <h2 className="mt-8 font-serif text-2xl font-semibold tracking-tight">{children}</h2>
@@ -43,18 +65,35 @@ export function Markdown({ children, className }: MarkdownProps) {
           ),
           td: ({ children }) => <td className="border-b px-4 py-2 align-top">{children}</td>,
           tr: ({ children }) => <tr className="even:bg-muted/20">{children}</tr>,
-          code: ({ children, className }) =>
-            className ? (
-              <code className={cn("rounded bg-muted px-1.5 py-0.5 font-mono text-sm", className)}>
+          // Shiki injects highlighted span trees inside <pre><code>; we preserve its
+          // className/style and only style inline (no className) code spans ourselves.
+          code: ({ children, className, ...rest }) => {
+            const isInline = !className;
+            if (isInline) {
+              return (
+                <code className="rounded bg-muted px-1 py-0.5 font-mono text-[0.95em]" {...rest}>
+                  {children}
+                </code>
+              );
+            }
+            return (
+              <code className={className} {...rest}>
                 {children}
               </code>
-            ) : (
-              <code className="rounded bg-muted px-1 py-0.5 font-mono text-[0.95em]">
-                {children}
-              </code>
-            ),
-          pre: ({ children }) => (
-            <pre className="my-6 overflow-x-auto rounded-lg border bg-muted/30 p-4 text-sm">
+            );
+          },
+          pre: ({ children, className, style, ...rest }) => (
+            <pre
+              className={cn(
+                "my-6 overflow-x-auto rounded-lg border p-4 text-sm",
+                // When Shiki sets its own className (.shiki), keep its background.
+                className,
+                !className?.includes("shiki") && "bg-muted/30",
+              )}
+              style={style}
+              tabIndex={0}
+              {...rest}
+            >
               {children}
             </pre>
           ),

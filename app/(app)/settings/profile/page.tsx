@@ -1,5 +1,6 @@
 import { requireUser } from "@/lib/supabase/server";
 import { getLatestProfile } from "@/lib/ai/profile";
+import { SettingsNav } from "@/components/settings/settings-nav";
 import { ProfileEditor } from "./profile-editor";
 import { BookmarkletPanel } from "./bookmarklet-panel";
 
@@ -18,6 +19,8 @@ export default async function ProfilePage() {
           insight cards on each detail page.
         </p>
       </div>
+
+      <SettingsNav active="profile" />
 
       <section className="space-y-6">
         <ProfileEditor initial={profileMd} />

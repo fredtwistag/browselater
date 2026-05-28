@@ -1,5 +1,6 @@
 import { requireUser } from "@/lib/supabase/server";
 import { Card, CardContent } from "@/components/ui/card";
+import { SettingsNav } from "@/components/settings/settings-nav";
 
 export const dynamic = "force-dynamic";
 
@@ -13,6 +14,8 @@ export default async function PrivacyPage() {
           What leaves your machine, and what stays.
         </p>
       </div>
+
+      <SettingsNav active="privacy" />
 
       <div className="space-y-4">
         <Card>

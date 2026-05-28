@@ -1,10 +1,18 @@
-import { requireUser } from "@/lib/supabase/server";
+import { requireUser, createClient } from "@/lib/supabase/server";
 import { ChatRoom } from "./chat-room";
 
 export const dynamic = "force-dynamic";
 
 export default async function ChatPage() {
-  await requireUser();
+  const user = await requireUser();
+  const supabase = await createClient();
+  const { data: tags } = await supabase
+    .from("tags")
+    .select("name")
+    .eq("user_id", user.id)
+    .order("name")
+    .limit(6);
+
   return (
     <div className="container max-w-3xl py-6">
       <div className="mb-4">
@@ -13,7 +21,7 @@ export default async function ChatPage() {
           Ask anything. Answers cite the saves they pull from.
         </p>
       </div>
-      <ChatRoom />
+      <ChatRoom tags={(tags ?? []).map((t) => t.name)} />
     </div>
   );
 }

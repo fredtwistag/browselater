@@ -1,6 +1,7 @@
 import { createServiceClient } from "@/lib/supabase/service";
 import { logEvent } from "@/lib/events";
 import { log } from "@/lib/log";
+import { captureError } from "@/lib/errors";
 import { extractArticle } from "@/lib/extract/article";
 import { extractYouTube } from "@/lib/extract/youtube";
 import { extractPdf } from "@/lib/extract/pdf";
@@ -18,6 +19,7 @@ export interface ExtractedContent {
   author?: string | null;
   publishedAt?: string | null;
   heroImageUrl?: string | null;
+  heroImageAlt?: string | null;
   rawText?: string | null;
   htmlSnapshot?: string | null;
   transcriptJson?: unknown;
@@ -67,7 +69,7 @@ export async function runExtractPipeline({ itemId, userId }: ExtractInput): Prom
     }
   } catch (err) {
     failureReason = err instanceof Error ? err.message : String(err);
-    log.error("extract.threw", { itemId, err: failureReason });
+    await captureError("worker.extract", err, { itemId, type: item.type }, userId);
   }
 
   if (!result) {
@@ -87,6 +89,7 @@ export async function runExtractPipeline({ itemId, userId }: ExtractInput): Prom
       author: result.author ?? null,
       published_at: result.publishedAt ?? null,
       hero_image_url: result.heroImageUrl ?? null,
+      hero_image_alt: result.heroImageAlt ?? null,
       read_time_minutes: result.readTimeMinutes ?? null,
       is_paywalled: result.isPaywalled ?? false,
       type: result.effectiveType ?? item.type,

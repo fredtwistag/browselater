@@ -1,10 +1,11 @@
-import Link from "next/link";
 import Image from "next/image";
 import { FileText, Image as ImageIcon, Link2, Play, FileType } from "lucide-react";
 import type { ContentType, ItemStatus } from "@/lib/db/types";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatRelativeTime } from "@/lib/utils";
+import { itemViewTransitionName } from "@/lib/view-transitions";
+import { FeedCardLink } from "./feed-card-link";
 
 interface FeedItem {
   id: string;
@@ -12,6 +13,7 @@ interface FeedItem {
   canonical_url: string;
   type: ContentType;
   hero_image_url: string | null;
+  hero_image_alt: string | null;
   status: ItemStatus;
   read_time_minutes: number | null;
   is_paywalled: boolean;
@@ -33,8 +35,11 @@ export function FeedList({ items }: { items: FeedItem[] }) {
 
 function FeedCard({ item }: { item: FeedItem }) {
   const isPending = item.status === "pending" || item.status === "extracting";
+  const imageVt = itemViewTransitionName(item.id, "image");
+  const titleVt = itemViewTransitionName(item.id, "title");
   return (
-    <Link
+    <FeedCardLink
+      itemId={item.id}
       href={`/item/${item.id}`}
       className="group block overflow-hidden rounded-lg border bg-card transition-all hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >
@@ -42,10 +47,11 @@ function FeedCard({ item }: { item: FeedItem }) {
         {item.hero_image_url ? (
           <Image
             src={item.hero_image_url}
-            alt=""
+            alt={item.hero_image_alt ?? item.title ?? ""}
             fill
             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
             className="object-cover transition-transform duration-500 group-hover:scale-105"
+            style={{ viewTransitionName: imageVt }}
           />
         ) : isPending ? (
           <Skeleton className="absolute inset-0" />
@@ -63,7 +69,10 @@ function FeedCard({ item }: { item: FeedItem }) {
         {isPending && !item.title ? (
           <Skeleton className="h-5 w-3/4" />
         ) : (
-          <h3 className="line-clamp-2 text-base font-medium leading-snug">
+          <h3
+            className="line-clamp-2 text-base font-medium leading-snug"
+            style={{ viewTransitionName: titleVt }}
+          >
             {item.title ?? new URL(item.canonical_url).hostname}
           </h3>
         )}
@@ -86,7 +95,7 @@ function FeedCard({ item }: { item: FeedItem }) {
           </Badge>
         )}
       </div>
-    </Link>
+    </FeedCardLink>
   );
 }
 

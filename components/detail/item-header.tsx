@@ -3,14 +3,17 @@ import { ExternalLink } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { formatRelativeTime } from "@/lib/utils";
 import { ContextBadge } from "./context-badge";
+import { itemViewTransitionName } from "@/lib/view-transitions";
 import type { ContentType, Context, ItemStatus } from "@/lib/db/types";
 
 interface ItemHeaderProps {
   item: {
+    id: string;
     title: string | null;
     author: string | null;
     published_at: string | null;
     hero_image_url: string | null;
+    hero_image_alt: string | null;
     canonical_url: string;
     source_domain: string | null;
     type: ContentType;
@@ -56,7 +59,10 @@ export function ItemHeader({ item, tags, primaryContext }: ItemHeaderProps) {
         ) : null}
       </div>
 
-      <h1 className="text-balance font-serif text-3xl font-semibold leading-tight tracking-tight md:text-4xl">
+      <h1
+        className="text-balance font-serif text-3xl font-semibold leading-tight tracking-tight md:text-4xl"
+        style={{ viewTransitionName: itemViewTransitionName(item.id, "title") }}
+      >
         {item.title ?? new URL(item.canonical_url).hostname}
       </h1>
 
@@ -82,11 +88,12 @@ export function ItemHeader({ item, tags, primaryContext }: ItemHeaderProps) {
         <div className="relative aspect-[16/9] w-full overflow-hidden rounded-lg border bg-muted">
           <Image
             src={item.hero_image_url}
-            alt=""
+            alt={item.hero_image_alt ?? item.title ?? ""}
             fill
             sizes="(max-width: 1024px) 100vw, 720px"
             className="object-cover"
             priority
+            style={{ viewTransitionName: itemViewTransitionName(item.id, "image") }}
           />
         </div>
       )}
