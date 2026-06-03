@@ -31,7 +31,11 @@ export function ReaderPane({
   const isPending = item.status === "pending" || item.status === "extracting";
 
   return (
-    <section className="flex h-full min-w-0 flex-col bg-background" aria-label="Reader">
+    <section
+      key={item.id}
+      className="pane-enter flex h-full min-w-0 flex-col bg-background"
+      aria-label="Reader"
+    >
       <ReaderToolbar
         itemId={item.id}
         isArchived={!!item.archived_at}

@@ -23,6 +23,7 @@ export interface ListItem {
   created_at: string;
   read_at: string | null;
   starred_at: string | null;
+  archived_at: string | null;
   primary_context: Context | null;
 }
 
@@ -61,6 +62,9 @@ export function ListRow({ item, selected = false }: ListRowProps) {
       data-feed-card={item.id}
       data-vt-image={imageVt}
       data-vt-title={titleVt}
+      data-starred={item.starred_at ? "1" : "0"}
+      data-read={item.read_at ? "1" : "0"}
+      data-archived={item.archived_at ? "1" : "0"}
       aria-current={selected ? "true" : undefined}
       className={cn(
         "group relative flex gap-3 rounded-md border border-transparent px-3 py-2.5 outline-none transition-colors",

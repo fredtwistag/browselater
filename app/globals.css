@@ -87,10 +87,23 @@
     @apply bg-background text-foreground antialiased;
     font-feature-settings:
       "rlig" 1,
-      "calt" 1;
+      "calt" 1,
+      "ss01" 1,
+      "cv11" 1;
   }
   html {
     -webkit-text-size-adjust: 100%;
+  }
+  /* Tighter tracking on big display text. */
+  h1,
+  h2,
+  .display {
+    letter-spacing: -0.012em;
+  }
+  /* Source Serif 4 supports optical sizing — let the browser pick. */
+  .font-serif,
+  .reading-column {
+    font-optical-sizing: auto;
   }
 }
 
@@ -131,6 +144,21 @@
     font-family: var(--font-source-serif), ui-serif, Georgia, serif;
     font-size: 1.0625rem;
     line-height: 1.65;
+  }
+
+  /* Subtle fade-in for the reader pane when selection changes. */
+  .pane-enter {
+    animation: pane-fade-in 180ms cubic-bezier(0.22, 0.61, 0.36, 1);
+  }
+  @keyframes pane-fade-in {
+    from {
+      opacity: 0;
+      transform: translateY(2px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 
   @media (prefers-reduced-motion: reduce) {

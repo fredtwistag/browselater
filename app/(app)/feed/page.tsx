@@ -2,7 +2,6 @@ import { requireUser } from "@/lib/supabase/server";
 import { ListPane } from "@/components/feed/list-pane";
 import { ReaderEmpty } from "@/components/feed/reader-empty";
 import { ReaderPane } from "@/components/detail/reader-pane";
-import { FeedShortcuts } from "@/components/feed/feed-shortcuts";
 import { loadFeed, viewTitle, type FeedView } from "@/lib/shell/feed-query";
 import { loadItemBundle } from "@/lib/detail/load-item";
 import { cn } from "@/lib/utils";
@@ -45,7 +44,6 @@ export default async function FeedPage({ searchParams }: FeedPageProps) {
 
   return (
     <div className="flex h-full w-full">
-      <FeedShortcuts />
       <div
         className={cn(
           "flex min-w-0 lg:w-[420px] lg:flex-shrink-0 xl:w-[460px]",

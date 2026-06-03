@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { getUser } from "@/lib/supabase/server";
 import { AppShell } from "@/components/shell/app-shell";
-import { KeyboardShortcuts } from "@/components/shell/keyboard-shortcuts";
+import { GlobalShortcuts } from "@/components/shell/global-shortcuts";
 import { loadSidebarData } from "@/lib/shell/sidebar-data";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
@@ -18,7 +18,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       counts={counts}
       tags={tags}
     >
-      <KeyboardShortcuts />
+      <GlobalShortcuts />
       {children}
     </AppShell>
   );

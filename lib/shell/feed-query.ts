@@ -17,6 +17,7 @@ export type FeedRow = {
   created_at: string;
   read_at: string | null;
   starred_at: string | null;
+  archived_at: string | null;
   primary_context: Context | null;
 };
 
@@ -111,6 +112,7 @@ export async function loadFeed(userId: string, filters: FeedFilters): Promise<Fe
     created_at: string;
     read_at: string | null;
     starred_at: string | null;
+    archived_at: string | null;
     item_ai: { primary_context: Context | null; version: number }[] | null;
   };
 
@@ -131,6 +133,7 @@ export async function loadFeed(userId: string, filters: FeedFilters): Promise<Fe
       created_at: row.created_at,
       read_at: row.read_at,
       starred_at: row.starred_at,
+      archived_at: row.archived_at,
       primary_context: latest?.primary_context ?? null,
     };
   });
