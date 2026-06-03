@@ -15,7 +15,11 @@ export type EventName =
   | "insight.feedback"
   | "search.query"
   | "chat.query"
-  | "profile.updated";
+  | "profile.updated"
+  | "item.read"
+  | "item.unread"
+  | "item.starred"
+  | "item.unstarred";
 
 export async function logEvent(
   name: EventName,

@@ -7,7 +7,6 @@ interface ListPaneProps {
   title: string;
   count: number;
   selectedId?: string | null;
-  hrefBase?: string;
   emptyFiltered?: boolean;
   emptyFilterLabel?: string;
 }
@@ -17,7 +16,6 @@ export function ListPane({
   title,
   count,
   selectedId,
-  hrefBase,
   emptyFiltered,
   emptyFilterLabel,
 }: ListPaneProps) {
@@ -43,7 +41,7 @@ export function ListPane({
                 <ul className="space-y-0.5">
                   {group.items.map((it) => (
                     <li key={it.id}>
-                      <ListRow item={it} selected={it.id === selectedId} hrefBase={hrefBase} />
+                      <ListRow item={it} selected={it.id === selectedId} />
                     </li>
                   ))}
                 </ul>

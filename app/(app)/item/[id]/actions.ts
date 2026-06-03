@@ -74,3 +74,48 @@ export async function rerunAi(itemId: string) {
   await enqueueExtract({ itemId, userId: user.id });
   revalidatePath(`/item/${itemId}`);
 }
+
+export async function markRead(itemId: string) {
+  const user = await requireUser();
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("items")
+    .update({ read_at: new Date().toISOString() })
+    .eq("id", itemId)
+    .eq("user_id", user.id)
+    .is("read_at", null);
+  if (!error) await logEvent("item.read", user.id, { itemId });
+  revalidatePath("/feed");
+  revalidatePath(`/item/${itemId}`);
+}
+
+export async function markUnread(itemId: string) {
+  const user = await requireUser();
+  const supabase = await createClient();
+  await supabase.from("items").update({ read_at: null }).eq("id", itemId).eq("user_id", user.id);
+  await logEvent("item.unread", user.id, { itemId });
+  revalidatePath("/feed");
+  revalidatePath(`/item/${itemId}`);
+}
+
+export async function starItem(itemId: string) {
+  const user = await requireUser();
+  const supabase = await createClient();
+  await supabase
+    .from("items")
+    .update({ starred_at: new Date().toISOString() })
+    .eq("id", itemId)
+    .eq("user_id", user.id);
+  await logEvent("item.starred", user.id, { itemId });
+  revalidatePath("/feed");
+  revalidatePath(`/item/${itemId}`);
+}
+
+export async function unstarItem(itemId: string) {
+  const user = await requireUser();
+  const supabase = await createClient();
+  await supabase.from("items").update({ starred_at: null }).eq("id", itemId).eq("user_id", user.id);
+  await logEvent("item.unstarred", user.id, { itemId });
+  revalidatePath("/feed");
+  revalidatePath(`/item/${itemId}`);
+}

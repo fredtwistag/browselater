@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { FileText, FileType, Image as ImageIcon, Lock, Play, Star } from "lucide-react";
 import type { ContentType, ItemStatus, Context } from "@/lib/db/types";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -29,18 +29,22 @@ export interface ListItem {
 interface ListRowProps {
   item: ListItem;
   selected?: boolean;
-  hrefBase?: string;
 }
 
-export function ListRow({ item, selected = false, hrefBase = "/item/" }: ListRowProps) {
+export function ListRow({ item, selected = false }: ListRowProps) {
   const router = useRouter();
+  const params = useSearchParams();
   const isPending = item.status === "pending" || item.status === "extracting";
   const unread = !item.read_at;
   const tint = contextTintVar(item.primary_context);
   const ctxLabel = contextLabel(item.primary_context);
-  const href = `${hrefBase}${item.id}`;
   const imageVt = itemViewTransitionName(item.id, "image");
   const titleVt = itemViewTransitionName(item.id, "title");
+
+  // Preserve current filters (view/context/tag/q) and set selected.
+  const next = new URLSearchParams(params.toString());
+  next.set("selected", item.id);
+  const href = `/feed?${next.toString()}`;
 
   function onClick(e: React.MouseEvent<HTMLAnchorElement>) {
     if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
