@@ -40,6 +40,8 @@ type ItemRow = {
   updated_at: string;
   archived_at: string | null;
   deleted_at: string | null;
+  read_at: string | null;
+  starred_at: string | null;
 };
 type ItemInsert = Partial<Omit<ItemRow, "id" | "created_at" | "updated_at">> & {
   user_id: string;
@@ -57,6 +59,8 @@ type ItemContentRow = {
   updated_at: string;
 };
 
+export type SourceQuality = "full" | "thin" | "title_only";
+
 type ItemAiRow = {
   id: string;
   item_id: string;
@@ -65,6 +69,7 @@ type ItemAiRow = {
   summary_md: string | null;
   takeaways_md: string | null;
   primary_context: Context | null;
+  source_quality: SourceQuality | null;
   model: string | null;
   created_at: string;
 };

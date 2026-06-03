@@ -1,54 +1,49 @@
-import { requireUser, createClient } from "@/lib/supabase/server";
-import { FeedHeader } from "@/components/feed/feed-header";
-import { FeedList } from "@/components/feed/feed-list";
-import { EmptyState } from "@/components/feed/empty-state";
+import { requireUser } from "@/lib/supabase/server";
+import { ListPane } from "@/components/feed/list-pane";
+import { ReaderEmpty } from "@/components/feed/reader-empty";
 import { FeedShortcuts } from "@/components/feed/feed-shortcuts";
+import { loadFeed, viewTitle, type FeedView } from "@/lib/shell/feed-query";
 
 export const dynamic = "force-dynamic";
 
 interface FeedPageProps {
-  searchParams: Promise<{ filter?: string; tag?: string; q?: string }>;
+  searchParams: Promise<{
+    view?: string;
+    context?: string;
+    tag?: string;
+    selected?: string;
+  }>;
 }
+
+const VALID_VIEWS: FeedView[] = ["inbox", "saved", "archived"];
 
 export default async function FeedPage({ searchParams }: FeedPageProps) {
   const user = await requireUser();
   const params = await searchParams;
-  const supabase = await createClient();
 
-  let query = supabase
-    .from("items")
-    .select(
-      "id, title, canonical_url, type, hero_image_url, hero_image_alt, status, read_time_minutes, is_paywalled, source_domain, created_at, archived_at",
-    )
-    .eq("user_id", user.id)
-    .is("deleted_at", null)
-    .order("created_at", { ascending: false })
-    .limit(50);
+  const view = (VALID_VIEWS.includes(params.view as FeedView) ? params.view : "inbox") as FeedView;
+  const filters = { view, context: params.context, tag: params.tag };
 
-  if (params.filter === "archived") {
-    query = query.not("archived_at", "is", null);
-  } else {
-    query = query.is("archived_at", null);
-  }
-
-  const { data: items, error } = await query;
+  const { items, total } = await loadFeed(user.id, filters);
+  const title = viewTitle(filters);
+  const filtered = !!(params.view || params.context || params.tag);
 
   return (
-    <div className="container max-w-6xl py-8">
+    <div className="flex h-full w-full">
       <FeedShortcuts />
-      <FeedHeader />
-      {error ? (
-        <div className="mt-8 rounded-lg border border-destructive/40 bg-destructive/5 p-6 text-sm text-destructive">
-          Could not load feed: {error.message}
-        </div>
-      ) : !items || items.length === 0 ? (
-        <EmptyState
-          filtered={params.filter === "archived"}
-          filterLabel={params.filter === "archived" ? "Archived" : undefined}
+      <div className="flex w-full min-w-0 lg:w-[420px] lg:flex-shrink-0 xl:w-[460px]">
+        <ListPane
+          items={items}
+          title={title}
+          count={total}
+          selectedId={params.selected ?? null}
+          emptyFiltered={filtered}
+          emptyFilterLabel={title}
         />
-      ) : (
-        <FeedList items={items} />
-      )}
+      </div>
+      <div className="hidden min-w-0 flex-1 lg:block">
+        <ReaderEmpty />
+      </div>
     </div>
   );
 }

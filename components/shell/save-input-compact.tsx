@@ -3,11 +3,10 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Plus } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/use-toast";
+import { cn } from "@/lib/utils";
 
-export function SaveInput() {
+export function SaveInputCompact() {
   const [url, setUrl] = useState("");
   const [pending, startTransition] = useTransition();
   const router = useRouter();
@@ -16,7 +15,6 @@ export function SaveInput() {
     e.preventDefault();
     const trimmed = url.trim();
     if (!trimmed) return;
-
     startTransition(async () => {
       try {
         const res = await fetch("/api/save", {
@@ -29,14 +27,10 @@ export function SaveInput() {
           throw new Error(data.error ?? `HTTP ${res.status}`);
         }
         const data = (await res.json()) as { id: string; duplicate?: boolean };
-        if (data.duplicate) {
-          toast({
-            title: "Already saved",
-            description: "Surfacing the existing item.",
-          });
-        } else {
-          toast({ title: "Saved", description: "Extracting content..." });
-        }
+        toast({
+          title: data.duplicate ? "Already saved" : "Saved",
+          description: data.duplicate ? "Surfacing the existing item." : "Extracting…",
+        });
         setUrl("");
         router.refresh();
       } catch (err) {
@@ -50,21 +44,31 @@ export function SaveInput() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex gap-2">
-      <Input
+    <form
+      onSubmit={handleSubmit}
+      className={cn(
+        "group flex items-center gap-1.5 rounded-md border bg-card px-2 py-1.5 transition-colors",
+        "focus-within:border-ring/60 focus-within:ring-1 focus-within:ring-ring/20",
+      )}
+    >
+      <Plus className="h-3.5 w-3.5 flex-shrink-0 text-muted-foreground" />
+      <input
         type="url"
-        placeholder="https://..."
+        placeholder="Paste a URL…"
         value={url}
         onChange={(e) => setUrl(e.target.value)}
         disabled={pending}
-        className="flex-1"
+        className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground/60 disabled:opacity-50"
         autoComplete="off"
         inputMode="url"
+        aria-label="Save a URL"
       />
-      <Button type="submit" disabled={pending || !url.trim()}>
-        <Plus className="h-4 w-4" />
-        Save
-      </Button>
+      {pending && (
+        <span
+          className="h-3 w-3 animate-spin rounded-full border border-muted-foreground/40 border-t-foreground"
+          aria-hidden
+        />
+      )}
     </form>
   );
 }
