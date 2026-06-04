@@ -67,6 +67,7 @@ export async function runAiPipeline({ itemId, userId }: AiInput): Promise<void> 
     summary_md: summary.summary_md,
     takeaways_md: summary.takeaways_md,
     primary_context: summary.primary_context,
+    source_quality: summary.source_quality,
     model: process.env.ANTHROPIC_MODEL_HAIKU ?? "claude-haiku-4-5-20251001",
   });
 
@@ -74,7 +75,18 @@ export async function runAiPipeline({ itemId, userId }: AiInput): Promise<void> 
   await saveTags(itemId, userId, summary.tags);
   await logEvent("ai.summary.completed", userId, { itemId, version: nextVersion });
 
-  // 3) Insights (Sonnet)
+  // 3) Insights (Sonnet) — skip entirely on title-only sources; the model has
+  // nothing concrete to reason from and any "insight" would be fabricated.
+  if (summary.source_quality === "title_only") {
+    await logEvent("ai.insights.completed", userId, {
+      itemId,
+      version: nextVersion,
+      cardCount: 0,
+      skipped: "title_only",
+    });
+    return;
+  }
+
   await logEvent("ai.insights.started", userId, { itemId });
   const profileMd = await getLatestProfile(userId);
 

@@ -122,7 +122,7 @@ export async function runExtractPipeline({ itemId, userId }: ExtractInput): Prom
   });
 
   // Kick AI pipeline
-  if (result.rawText && result.rawText.length > 200) {
+  if (result.rawText && result.rawText.length > 40) {
     await runAiPipeline({ itemId, userId });
   } else {
     log.info("extract.skip_ai_short_text", { itemId, len: result.rawText?.length ?? 0 });

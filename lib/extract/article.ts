@@ -2,6 +2,7 @@ import { Readability } from "@mozilla/readability";
 import { JSDOM } from "jsdom";
 import { estimateReadTimeMinutes } from "@/lib/utils";
 import { log } from "@/lib/log";
+import { isTwitterUrl, extractTwitter } from "@/lib/extract/twitter";
 import type { ExtractedContent } from "@/workers/jobs/extract";
 
 // Paywall heuristics — sites that block extraction even if HTTP 200 comes back
@@ -18,8 +19,17 @@ const USER_AGENT =
 
 export async function extractArticle(
   url: string,
-  _userId: string,
+  userId: string,
 ): Promise<ExtractedContent | null> {
+  // Twitter / X tweets are JS-rendered; Readability sees an empty body.
+  // Route them through the syndication API extractor instead.
+  if (isTwitterUrl(url)) {
+    const tweet = await extractTwitter(url, userId);
+    if (tweet) return tweet;
+    log.info("twitter.fallback_to_readability", { url });
+    // fall through if the syndication endpoint failed
+  }
+
   const res = await fetch(url, {
     headers: { "user-agent": USER_AGENT, accept: "text/html,application/xhtml+xml" },
     signal: AbortSignal.timeout(20_000),
