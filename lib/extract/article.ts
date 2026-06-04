@@ -3,6 +3,7 @@ import { JSDOM } from "jsdom";
 import { estimateReadTimeMinutes } from "@/lib/utils";
 import { log } from "@/lib/log";
 import { isTwitterUrl, extractTwitter } from "@/lib/extract/twitter";
+import { cleanTitle } from "@/lib/extract/title";
 import type { ExtractedContent } from "@/workers/jobs/extract";
 
 // Paywall heuristics — sites that block extraction even if HTTP 200 comes back
@@ -47,6 +48,10 @@ export async function extractArticle(
   const lower = html.toLowerCase();
   const isPaywalled = PAYWALL_MARKERS.some((m) => lower.includes(m));
 
+  const siteName =
+    dom.window.document.querySelector('meta[property="og:site_name"]')?.getAttribute("content") ??
+    null;
+
   if (!parsed || !parsed.textContent || parsed.textContent.length < 300) {
     log.info("article.parse_thin", { url, len: parsed?.textContent?.length ?? 0 });
     if (isPaywalled) {
@@ -59,7 +64,7 @@ export async function extractArticle(
     const description = doc.querySelector('meta[name="description"]')?.getAttribute("content");
     const fallbackText = parsed?.textContent ?? doc.body?.textContent ?? description ?? "";
     return {
-      title: ogTitle ?? doc.title ?? null,
+      title: cleanTitle(ogTitle ?? doc.title ?? null, siteName),
       heroImageUrl: ogImage ?? null,
       rawText: fallbackText.trim().slice(0, 50_000),
       htmlSnapshot: html.slice(0, 2_000_000),
@@ -79,7 +84,7 @@ export async function extractArticle(
     doc.querySelector("time[datetime]")?.getAttribute("datetime");
 
   return {
-    title: parsed.title?.trim() ?? null,
+    title: cleanTitle(parsed.title, siteName),
     author: parsed.byline ?? null,
     publishedAt: publishedMeta ?? null,
     heroImageUrl: ogImage ?? null,
