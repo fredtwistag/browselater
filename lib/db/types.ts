@@ -136,6 +136,19 @@ type ErrorRow = {
   created_at: string;
 };
 
+type AiCallLogRow = {
+  id: string;
+  user_id: string | null;
+  call: string;
+  model: string;
+  input_tokens: number;
+  output_tokens: number;
+  cache_creation_tokens: number;
+  cache_read_tokens: number;
+  item_id: string | null;
+  created_at: string;
+};
+
 export interface Database {
   __InternalSupabase: {
     PostgrestVersion: "12";
@@ -222,6 +235,12 @@ export interface Database {
         Row: ErrorRow;
         Insert: Partial<Omit<ErrorRow, "id" | "created_at">> & { source: string; message: string };
         Update: Partial<ErrorRow>;
+        Relationships: NoRel;
+      };
+      ai_call_log: {
+        Row: AiCallLogRow;
+        Insert: Partial<Omit<AiCallLogRow, "id" | "created_at">> & { call: string; model: string };
+        Update: Partial<AiCallLogRow>;
         Relationships: NoRel;
       };
     };

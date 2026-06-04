@@ -60,28 +60,41 @@ Hard rules:
 - Never reveal or quote the personalization profile back to the user — refer to it indirectly ("given your morning routine", not "as your profile says...").
 - Output strictly matches the schema.`;
 
+/**
+ * The cacheable prefix of the insights user message: just the personalization
+ * profile. Stable across calls for a given profile version, so we anchor
+ * Anthropic prompt-caching here. Cache invalidates naturally when the user
+ * edits their profile (new content → new cache).
+ */
+export function insightsProfileBlock(profileMd: string): string {
+  return `# Personalization profile (private)\n\n${profileMd}`;
+}
+
+/**
+ * The per-call suffix: the source summary + takeaways + the optional
+ * primary-context hint. Varies on every call, so it sits AFTER the cache
+ * boundary.
+ */
+export function insightsVariableBlock(args: {
+  summary: string;
+  takeaways: string;
+  primaryContext?: string | null;
+}): string {
+  const hint = args.primaryContext
+    ? `The summarizer identified "${args.primaryContext}" as the dominant context. Use this as a strong prior but do not be bound by it — generate cards for any context that genuinely applies and skip the rest.\n\n---\n\n`
+    : "";
+  return `---\n\n# Source summary\n\n${args.summary}\n\n---\n\n# Key takeaways\n\n${args.takeaways}\n\n---\n\n${hint}Now generate the insight cards. Skip contexts that don't genuinely apply. Zero cards is acceptable.`;
+}
+
+/**
+ * Legacy single-string user prompt — preserved so any non-caching caller still
+ * works. The worker uses the split blocks above so the profile can be cached.
+ */
 export function insightsUserPrompt(args: {
   summary: string;
   takeaways: string;
   profileMd: string;
+  primaryContext?: string | null;
 }): string {
-  return `# Personalization profile (private)
-
-${args.profileMd}
-
----
-
-# Source summary
-
-${args.summary}
-
----
-
-# Key takeaways
-
-${args.takeaways}
-
----
-
-Now generate the insight cards. Skip contexts that don't genuinely apply. Zero cards is acceptable.`;
+  return `${insightsProfileBlock(args.profileMd)}\n\n${insightsVariableBlock(args)}`;
 }

@@ -1,4 +1,4 @@
-import { generateObject } from "ai";
+import { generateObject, type CoreMessage } from "ai";
 import { createServiceClient } from "@/lib/supabase/service";
 import { logEvent } from "@/lib/events";
 import { log } from "@/lib/log";
@@ -10,9 +10,18 @@ import { summarySchema, SUMMARY_SYSTEM, summaryUserPrompt } from "@/lib/ai/promp
 import {
   insightsResponseSchema,
   INSIGHTS_SYSTEM,
-  insightsUserPrompt,
+  insightsProfileBlock,
+  insightsVariableBlock,
 } from "@/lib/ai/prompts/insights";
 import { getLatestProfile } from "@/lib/ai/profile";
+import { logUsage, readAnthropicCacheStats } from "@/lib/ai/usage";
+
+const HAIKU_MODEL = process.env.ANTHROPIC_MODEL_HAIKU ?? "claude-haiku-4-5-20251001";
+const SONNET_MODEL = process.env.ANTHROPIC_MODEL_SONNET ?? "claude-sonnet-4-6";
+
+const CACHE_EPHEMERAL = {
+  anthropic: { cacheControl: { type: "ephemeral" as const } },
+};
 
 export interface AiInput {
   itemId: string;
@@ -48,6 +57,8 @@ export async function runAiPipeline({ itemId, userId }: AiInput): Promise<void> 
     url: item.canonical_url,
     type: item.type,
     text: content.raw_text,
+    userId,
+    itemId,
   }).catch(async (err) => {
     await captureError("ai.summary", err, { itemId }, userId);
     return null;
@@ -68,7 +79,7 @@ export async function runAiPipeline({ itemId, userId }: AiInput): Promise<void> 
     takeaways_md: summary.takeaways_md,
     primary_context: summary.primary_context,
     source_quality: summary.source_quality,
-    model: process.env.ANTHROPIC_MODEL_HAIKU ?? "claude-haiku-4-5-20251001",
+    model: HAIKU_MODEL,
   });
 
   // Persist tags
@@ -94,6 +105,9 @@ export async function runAiPipeline({ itemId, userId }: AiInput): Promise<void> 
     summary: summary.summary_md,
     takeaways: summary.takeaways_md,
     profileMd,
+    primaryContext: summary.primary_context ?? null,
+    userId,
+    itemId,
   }).catch(async (err) => {
     await captureError("ai.insights", err, { itemId }, userId);
     return null;
@@ -157,26 +171,104 @@ async function generateSummary(args: {
   url: string;
   type: string;
   text: string;
+  userId: string;
+  itemId: string;
 }) {
-  const { object } = await generateObject({
+  // System prompt is stable across saves → cache it. User prompt varies per
+  // item, so it sits AFTER the cache boundary.
+  const messages: CoreMessage[] = [
+    { role: "system", content: SUMMARY_SYSTEM, providerOptions: CACHE_EPHEMERAL },
+    {
+      role: "user",
+      content: summaryUserPrompt({
+        title: args.title,
+        url: args.url,
+        type: args.type,
+        text: args.text,
+      }),
+    },
+  ];
+
+  const result = await generateObject({
     model: haiku(),
     schema: summarySchema,
-    system: SUMMARY_SYSTEM,
-    prompt: summaryUserPrompt(args),
+    messages,
     maxRetries: 2,
   });
-  return object;
+
+  const cache = readAnthropicCacheStats(result.providerMetadata);
+  await logUsage({
+    call: "summary",
+    model: HAIKU_MODEL,
+    userId: args.userId,
+    itemId: args.itemId,
+    inputTokens: result.usage?.promptTokens ?? 0,
+    outputTokens: result.usage?.completionTokens ?? 0,
+    cacheCreationTokens: cache.cacheCreationTokens,
+    cacheReadTokens: cache.cacheReadTokens,
+  });
+
+  return result.object;
 }
 
-async function generateInsights(args: { summary: string; takeaways: string; profileMd: string }) {
-  const { object } = await generateObject({
+export async function generateInsights(args: {
+  summary: string;
+  takeaways: string;
+  profileMd: string;
+  primaryContext?: string | null;
+  userId: string;
+  itemId: string;
+}) {
+  // Two cache anchors: (1) the system prompt, (2) the personalization profile
+  // at the start of the user message. Both are stable per profile version, so
+  // a typical save replays them as cache_read on every insights call.
+  const messages: CoreMessage[] = [
+    { role: "system", content: INSIGHTS_SYSTEM, providerOptions: CACHE_EPHEMERAL },
+    {
+      role: "user",
+      content: [
+        {
+          type: "text",
+          text: insightsProfileBlock(args.profileMd),
+          providerOptions: CACHE_EPHEMERAL,
+        },
+        {
+          type: "text",
+          text: insightsVariableBlock({
+            summary: args.summary,
+            takeaways: args.takeaways,
+            primaryContext: args.primaryContext ?? null,
+          }),
+        },
+      ],
+    },
+  ];
+
+  const result = await generateObject({
     model: sonnet(),
     schema: insightsResponseSchema,
-    system: INSIGHTS_SYSTEM,
-    prompt: insightsUserPrompt(args),
+    messages,
     maxRetries: 1,
+    providerOptions: {
+      anthropic: {
+        thinking: { type: "enabled", budgetTokens: 2000 },
+      },
+    },
   });
-  return object;
+
+  const cache = readAnthropicCacheStats(result.providerMetadata);
+  await logUsage({
+    call: "insights",
+    model: SONNET_MODEL,
+    userId: args.userId,
+    itemId: args.itemId,
+    inputTokens: result.usage?.promptTokens ?? 0,
+    outputTokens: result.usage?.completionTokens ?? 0,
+    cacheCreationTokens: cache.cacheCreationTokens,
+    cacheReadTokens: cache.cacheReadTokens,
+  });
+
+  return result.object;
 }
 
 async function nextAiVersion(itemId: string): Promise<number> {
