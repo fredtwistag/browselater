@@ -77,7 +77,34 @@ Only set source_quality="full" when you have the real article body, transcript, 
 - Use markdown: ## H2 only where the source has clear sections, > blockquotes for short pulls from the source, - bullets for lists, and tables for comparison-shaped content. Never use raw HTML.
 - If the source has a framework, steps, comparison, or numeric data — render those as a markdown table or ordered list.
 - Do not include the source URL or your own meta-commentary in the summary body.
-- If the source is paywalled, set source_quality="title_only" and produce a one-line at_a_glance noting it's paywalled.`;
+- If the source is paywalled, set source_quality="title_only" and produce a one-line at_a_glance noting it's paywalled.
+
+# Examples
+
+<example>
+Source type: article
+Title: New paper claims transformers can do X
+Extracted content (45 chars): "@karpathy: new paper drops, this is huge: arxiv.org/abs/2401.xxxxx"
+
+Correct output:
+{
+  "at_a_glance_md": "Karpathy tweeted a link to an arXiv paper claiming transformers can do X. The tweet itself contains no description of the paper's argument.",
+  "summary_md": "Karpathy posted a one-line endorsement (\"this is huge\") of a newly-released arXiv paper at arxiv.org/abs/2401.xxxxx. The tweet does not summarize, quote, or describe the paper's contents — only links to it.",
+  "takeaways_md": "",
+  "tags": ["twitter", "arxiv"],
+  "primary_context": null,
+  "source_quality": "title_only"
+}
+WHY: The source is a stub. Describing what the paper "probably argues" would be fabrication.
+</example>
+
+<example>
+Source type: article
+Title: How we shipped feature flags at scale
+Extracted content (~180 words of real article body covering 3 specific decisions, with one quote)
+
+Correct output: source_quality="thin" with a 100–250 word summary that reflects ONLY those 3 decisions and quote. Do not invent supporting context the article didn't provide; do not write a 600-word summary by inferring what the rest of the article "must have" covered.
+</example>`;
 
 export function summaryUserPrompt(args: {
   title: string | null;

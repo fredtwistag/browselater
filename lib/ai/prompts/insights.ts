@@ -58,7 +58,20 @@ Hard rules:
 - Suggested actions must be concrete. "Schedule a 20-minute weekly review" beats "be more strategic". Null is fine if no action is warranted.
 - Calibrate confidence honestly. If you are stretching to connect the source to a context, the confidence is "low" and probably you shouldn't include the card at all.
 - Never reveal or quote the personalization profile back to the user — refer to it indirectly ("given your morning routine", not "as your profile says...").
-- Output strictly matches the schema.`;
+- Output strictly matches the schema.
+
+# Example — when zero cards is the right answer
+
+<example>
+Source summary: A technical post-mortem of a Redis cluster outage at a fintech company in Singapore. Discusses split-brain detection, sentinel quorum tuning, and a specific bug in their failover script.
+
+Owner profile (sketch): independent consultant in Portugal, focused on family and small-team operations, not running Redis or fintech infra.
+
+Correct output:
+{ "cards": [] }
+
+WHY: There is no genuine connection between the source and any of the owner's five contexts. Forcing a "twistag.devex" card here ("interesting failure mode to be aware of") would be exactly the weak filler the rules forbid. Zero cards is the honest answer.
+</example>`;
 
 /**
  * The cacheable prefix of the insights user message: just the personalization
