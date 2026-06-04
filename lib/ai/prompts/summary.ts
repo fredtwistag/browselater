@@ -111,9 +111,14 @@ export function summaryUserPrompt(args: {
   url: string;
   type: string;
   text: string;
+  preferredTags?: string[];
 }): string {
   const truncated =
     args.text.length > 60_000 ? args.text.slice(0, 60_000) + "\n…[truncated]" : args.text;
+  const vocab =
+    args.preferredTags && args.preferredTags.length > 0
+      ? `\n\nExisting tag vocabulary the user already uses: ${args.preferredTags.join(", ")}. Prefer reusing these over inventing near-duplicates (e.g. don't introduce "a-i" when "ai" is already in use).`
+      : "";
   return `Source type: ${args.type}
 Source URL: ${args.url}
 Title: ${args.title ?? "(unknown)"}
@@ -127,5 +132,5 @@ ${truncated}
 
 ---
 
-Produce the structured summary now. Remember: if the extracted content above is essentially just a headline + link (i.e. doesn't actually contain the article body), set source_quality="title_only" and describe ONLY what the tweet/headline itself says — do not infer what the linked article contains.`;
+Produce the structured summary now. Remember: if the extracted content above is essentially just a headline + link (i.e. doesn't actually contain the article body), set source_quality="title_only" and describe ONLY what the tweet/headline itself says — do not infer what the linked article contains.${vocab}`;
 }

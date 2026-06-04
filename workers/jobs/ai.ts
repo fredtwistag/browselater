@@ -14,6 +14,7 @@ import {
   insightsVariableBlock,
 } from "@/lib/ai/prompts/insights";
 import { getLatestProfile } from "@/lib/ai/profile";
+import { getPreferredTags } from "@/lib/ai/tag-vocabulary";
 import { logUsage, readAnthropicCacheStats } from "@/lib/ai/usage";
 
 const HAIKU_MODEL = process.env.ANTHROPIC_MODEL_HAIKU ?? "claude-haiku-4-5-20251001";
@@ -52,11 +53,13 @@ export async function runAiPipeline({ itemId, userId }: AiInput): Promise<void> 
 
   // 2) Summary (Haiku)
   await logEvent("ai.summary.started", userId, { itemId });
+  const preferredTags = await getPreferredTags(userId, 30);
   const summary = await generateSummary({
     title: item.title,
     url: item.canonical_url,
     type: item.type,
     text: content.raw_text,
+    preferredTags,
     userId,
     itemId,
   }).catch(async (err) => {
@@ -171,6 +174,7 @@ async function generateSummary(args: {
   url: string;
   type: string;
   text: string;
+  preferredTags?: string[];
   userId: string;
   itemId: string;
 }) {
@@ -185,6 +189,7 @@ async function generateSummary(args: {
         url: args.url,
         type: args.type,
         text: args.text,
+        preferredTags: args.preferredTags,
       }),
     },
   ];
