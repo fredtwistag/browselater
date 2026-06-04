@@ -1,7 +1,6 @@
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeSanitize, { defaultSchema } from "rehype-sanitize";
-import rehypeShiki from "@shikijs/rehype";
 import { cn } from "@/lib/utils";
 
 interface MarkdownProps {
@@ -9,7 +8,6 @@ interface MarkdownProps {
   className?: string;
 }
 
-// Allow Shiki's color/background-color inline styles to survive sanitization.
 const sanitizeSchema = {
   ...defaultSchema,
   attributes: {
@@ -26,16 +24,7 @@ export function Markdown({ children, className }: MarkdownProps) {
     <div className={cn("prose-markdown", className)}>
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
-        rehypePlugins={[
-          [
-            rehypeShiki,
-            {
-              themes: { light: "github-light", dark: "github-dark" },
-              defaultColor: false,
-            },
-          ],
-          [rehypeSanitize, sanitizeSchema],
-        ]}
+        rehypePlugins={[[rehypeSanitize, sanitizeSchema]]}
         components={{
           h2: ({ children }) => (
             <h2 className="mt-8 font-serif text-2xl font-semibold tracking-tight">{children}</h2>

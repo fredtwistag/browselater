@@ -2,6 +2,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { signBookmarkletToken, bookmarkletSnippet } from "@/lib/bookmarklet";
 import { siteUrl } from "@/lib/env";
 import { CopyButton } from "./copy-button";
+import { DraggableBookmarklet } from "./draggable-bookmarklet";
 
 export function BookmarkletPanel({ userId }: { userId: string }) {
   let token: string | null = null;
@@ -24,13 +25,7 @@ export function BookmarkletPanel({ userId }: { userId: string }) {
         {token ? (
           <>
             <div className="rounded-md border bg-muted/30 p-3">
-              <a
-                href={bookmarkletSnippet(siteUrl(), token)}
-                onClick={(e) => e.preventDefault()}
-                className="font-medium text-primary"
-              >
-                Save to BrowseLater
-              </a>
+              <DraggableBookmarklet href={bookmarkletSnippet(siteUrl(), token)} />
             </div>
             <details className="text-sm">
               <summary className="cursor-pointer text-muted-foreground">Show the snippet</summary>
