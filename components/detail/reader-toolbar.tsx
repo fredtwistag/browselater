@@ -11,6 +11,7 @@ import {
   ExternalLink,
   MoreHorizontal,
   RefreshCw,
+  Sparkles,
   Star,
   Trash2,
 } from "lucide-react";
@@ -28,6 +29,7 @@ import {
   unarchiveItem,
   deleteItem,
   rerunAi,
+  regenerateInsights,
   markRead,
   markUnread,
   starItem,
@@ -142,6 +144,30 @@ export function ReaderToolbar({
             <MoreHorizontal className="h-4 w-4" />
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
+            <DropdownMenuItem
+              onClick={() =>
+                startTransition(async () => {
+                  const r = await regenerateInsights(itemId);
+                  if ("ok" in r && r.ok) {
+                    toast({
+                      title:
+                        r.cardCount === 0
+                          ? "No insights this time"
+                          : `Regenerated ${r.cardCount} card${r.cardCount === 1 ? "" : "s"}`,
+                    });
+                    router.refresh();
+                  } else {
+                    toast({
+                      title: "Couldn't regenerate insights",
+                      description: r.skipped,
+                    });
+                  }
+                })
+              }
+            >
+              <Sparkles className="h-4 w-4" />
+              Regenerate insights
+            </DropdownMenuItem>
             <DropdownMenuItem
               className="text-destructive focus:text-destructive"
               onClick={() => {

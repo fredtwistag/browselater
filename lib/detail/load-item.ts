@@ -96,13 +96,24 @@ export async function loadItemBundle(itemId: string, userId: string): Promise<It
     .limit(1);
   const latestAi = (aiVersions?.[0] ?? null) as ReaderAi;
 
+  // insight_cards.version is independent of item_ai.version: regenerateInsights
+  // bumps only insight_cards while item_ai stays fixed. We always show the most
+  // recent insights regardless of which summary version they were generated against.
+  const { data: latestInsightVersion } = await supabase
+    .from("insight_cards")
+    .select("version")
+    .eq("item_id", itemId)
+    .order("version", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
   const { data: insights } = await supabase
     .from("insight_cards")
     .select(
       "id, context, headline, body_md, suggested_actions_md, confidence, user_feedback, version",
     )
     .eq("item_id", itemId)
-    .eq("version", latestAi?.version ?? 0)
+    .eq("version", latestInsightVersion?.version ?? 0)
     .order("confidence", { ascending: false });
 
   const { data: tagsRaw } = await supabase
