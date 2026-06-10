@@ -1,5 +1,8 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 
+// Tokens ride in bookmarklet URLs (logs, history); cap their useful life.
+export const TOKEN_MAX_AGE_MS = 180 * 24 * 60 * 60 * 1000; // 180 days
+
 function secret(): string {
   const s = process.env.BOOKMARKLET_SIGNING_SECRET;
   if (!s) throw new Error("BOOKMARKLET_SIGNING_SECRET not set");
@@ -26,8 +29,11 @@ export async function verifyBookmarkletToken(token: string): Promise<string | nu
   const a = Buffer.from(mac);
   const b = Buffer.from(expected);
   if (a.length !== b.length || !timingSafeEqual(a, b)) return null;
-  const [userId] = payload.split(".");
-  return userId || null;
+  const [userId, issuedAtRaw] = payload.split(".");
+  const issuedAt = Number(issuedAtRaw);
+  if (!userId || !Number.isFinite(issuedAt)) return null;
+  if (Date.now() - issuedAt > TOKEN_MAX_AGE_MS) return null;
+  return userId;
 }
 
 export function bookmarkletSnippet(siteUrl: string, token: string): string {
