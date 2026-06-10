@@ -13,7 +13,7 @@ Verified baseline at `32ac5e5`: `npm run lint` ✓ · `npm run typecheck` ✓ ·
 | 001  | Patch Next.js to 14.2.35 (critical middleware auth-bypass CVE) | P1       | S      | —                         | DONE   |
 | 002  | GitHub Actions CI gate + `npm run verify` script               | P1       | S      | —                         | DONE   |
 | 003  | Checked DB writes in the AI pipeline + saveTags race fix       | P1       | M      | — (002 recommended first) | DONE   |
-| 004  | Dedicated `WORKER_SECRET` for the worker route                 | P1       | S      | —                         | TODO   |
+| 004  | Dedicated `WORKER_SECRET` for the worker route                 | P1       | S      | —                         | DONE   |
 | 005  | Bookmarklet token expiry + schema tightening                   | P2       | S      | —                         | TODO   |
 | 006  | SSRF guard on extract-pipeline fetches                         | P2       | M      | —                         | TODO   |
 
