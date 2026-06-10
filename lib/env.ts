@@ -10,6 +10,7 @@ const envSchema = z.object({
   VOYAGE_API_KEY: z.string().optional(),
   NEXT_PUBLIC_SITE_URL: z.string().url().default("http://localhost:3000"),
   BOOKMARKLET_SIGNING_SECRET: z.string().min(16).optional(),
+  WORKER_SECRET: z.string().min(32).optional(),
   DEBUG_PIPELINE: z.string().optional(),
 });
 
