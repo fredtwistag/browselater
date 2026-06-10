@@ -1,4 +1,5 @@
 import type { ContentType } from "@/lib/db/types";
+import { assertPublicUrl } from "@/lib/extract/url-guard";
 
 // Tracking params stripped during canonicalization (PRD §9.2).
 const TRACKING_PARAMS = new Set([
@@ -98,6 +99,10 @@ function ensureProtocol(input: string): string {
 }
 
 async function fetchSafe(url: string, method: "HEAD" | "GET"): Promise<Response | null> {
+  // Outside the try: a private-URL target must THROW out of resolveCanonical
+  // (both API entry points translate the throw into HTTP 400), not be swallowed
+  // into null. This runs on every redirect hop, not just the initial URL.
+  assertPublicUrl(url);
   try {
     const res = await fetch(url, {
       method,

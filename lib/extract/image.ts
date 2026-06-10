@@ -1,8 +1,19 @@
 import { createServiceClient } from "@/lib/supabase/service";
 import { log } from "@/lib/log";
+import { assertPublicUrl, PrivateUrlError } from "@/lib/extract/url-guard";
 import type { ExtractedContent } from "@/workers/jobs/extract";
 
 export async function extractImage(url: string, userId: string): Promise<ExtractedContent | null> {
+  try {
+    assertPublicUrl(url);
+  } catch (err) {
+    if (err instanceof PrivateUrlError) {
+      log.warn("image.private_url", { url });
+      return null;
+    }
+    throw err;
+  }
+
   const res = await fetch(url, { signal: AbortSignal.timeout(20_000) });
   if (!res.ok) {
     log.warn("image.http_error", { url, status: res.status });
