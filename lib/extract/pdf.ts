@@ -1,9 +1,20 @@
 import { createServiceClient } from "@/lib/supabase/service";
 import { estimateReadTimeMinutes } from "@/lib/utils";
 import { log } from "@/lib/log";
+import { assertPublicUrl, PrivateUrlError } from "@/lib/extract/url-guard";
 import type { ExtractedContent } from "@/workers/jobs/extract";
 
 export async function extractPdf(url: string, userId: string): Promise<ExtractedContent | null> {
+  try {
+    assertPublicUrl(url);
+  } catch (err) {
+    if (err instanceof PrivateUrlError) {
+      log.warn("pdf.private_url", { url });
+      return null;
+    }
+    throw err;
+  }
+
   const res = await fetch(url, { signal: AbortSignal.timeout(30_000) });
   if (!res.ok) {
     log.warn("pdf.http_error", { url, status: res.status });

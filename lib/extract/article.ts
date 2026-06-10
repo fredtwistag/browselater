@@ -4,6 +4,7 @@ import { estimateReadTimeMinutes } from "@/lib/utils";
 import { log } from "@/lib/log";
 import { isTwitterUrl, extractTwitter } from "@/lib/extract/twitter";
 import { cleanTitle } from "@/lib/extract/title";
+import { assertPublicUrl, PrivateUrlError } from "@/lib/extract/url-guard";
 import type { ExtractedContent } from "@/workers/jobs/extract";
 
 // Paywall heuristics — sites that block extraction even if HTTP 200 comes back
@@ -29,6 +30,16 @@ export async function extractArticle(
     if (tweet) return tweet;
     log.info("twitter.fallback_to_readability", { url });
     // fall through if the syndication endpoint failed
+  }
+
+  try {
+    assertPublicUrl(url);
+  } catch (err) {
+    if (err instanceof PrivateUrlError) {
+      log.warn("article.private_url", { url });
+      return null;
+    }
+    throw err;
   }
 
   const res = await fetch(url, {
