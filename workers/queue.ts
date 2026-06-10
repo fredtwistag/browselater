@@ -23,7 +23,7 @@ export async function enqueueExtract(job: ExtractJob): Promise<void> {
       method: "POST",
       headers: {
         "content-type": "application/json",
-        "x-worker-secret": process.env.SUPABASE_SERVICE_ROLE_KEY ?? "",
+        "x-worker-secret": process.env.WORKER_SECRET ?? "",
       },
       body: JSON.stringify(job),
     }).catch((err) => log.error("queue.enqueue_failed", { err: String(err) }));

@@ -1,3 +1,4 @@
+import { timingSafeEqual } from "node:crypto";
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 import { runExtractPipeline } from "@/workers/jobs/extract";
@@ -7,9 +8,17 @@ export const maxDuration = 300;
 
 const bodySchema = z.object({ itemId: z.string().uuid(), userId: z.string().uuid() });
 
+function safeEqual(a: string, b: string): boolean {
+  const ab = Buffer.from(a);
+  const bb = Buffer.from(b);
+  return ab.length === bb.length && timingSafeEqual(ab, bb);
+}
+
 export async function POST(request: NextRequest) {
   const secret = request.headers.get("x-worker-secret");
-  if (!secret || secret !== process.env.SUPABASE_SERVICE_ROLE_KEY) {
+  const expected = process.env.WORKER_SECRET;
+  // Fail-closed: an unset WORKER_SECRET 401s every request (the !expected arm).
+  if (!secret || !expected || !safeEqual(secret, expected)) {
     return new NextResponse("unauthorized", { status: 401 });
   }
 
