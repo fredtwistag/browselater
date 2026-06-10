@@ -15,7 +15,7 @@ Verified baseline at `32ac5e5`: `npm run lint` ✓ · `npm run typecheck` ✓ ·
 | 003  | Checked DB writes in the AI pipeline + saveTags race fix       | P1       | M      | — (002 recommended first) | DONE   |
 | 004  | Dedicated `WORKER_SECRET` for the worker route                 | P1       | S      | —                         | DONE   |
 | 005  | Bookmarklet token expiry + schema tightening                   | P2       | S      | —                         | DONE   |
-| 006  | SSRF guard on extract-pipeline fetches                         | P2       | M      | —                         | TODO   |
+| 006  | SSRF guard on extract-pipeline fetches                         | P2       | M      | —                         | DONE   |
 
 Status values: TODO | IN PROGRESS | DONE | BLOCKED (with one-line reason) | REJECTED (with one-line rationale)
 
