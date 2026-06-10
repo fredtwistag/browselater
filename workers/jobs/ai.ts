@@ -68,13 +68,13 @@ export async function runAiPipeline({ itemId, userId }: AiInput): Promise<void> 
   });
 
   if (!summary) {
-    await logEvent("ai.summary.failed" as never, userId, { itemId });
+    await logEvent("ai.summary.failed", userId, { itemId });
     return;
   }
 
   const nextVersion = await nextAiVersion(itemId);
 
-  await supabase.from("item_ai").insert({
+  const { error: aiErr } = await supabase.from("item_ai").insert({
     item_id: itemId,
     version: nextVersion,
     at_a_glance_md: summary.at_a_glance_md,
@@ -84,6 +84,12 @@ export async function runAiPipeline({ itemId, userId }: AiInput): Promise<void> 
     source_quality: summary.source_quality,
     model: HAIKU_MODEL,
   });
+  if (aiErr) {
+    // Summary row didn't persist — bail before insights, which would otherwise
+    // produce cards pointing at a version that doesn't exist.
+    await captureError("ai.save_summary", aiErr, { itemId, version: nextVersion }, userId);
+    return;
+  }
 
   // Persist tags
   await saveTags(itemId, userId, summary.tags);
@@ -116,6 +122,7 @@ export async function runAiPipeline({ itemId, userId }: AiInput): Promise<void> 
     return null;
   });
 
+  let savedCardCount = insights?.cards.length ?? 0;
   if (insights && insights.cards.length > 0) {
     const rows = insights.cards.map((c) => ({
       item_id: itemId,
@@ -126,12 +133,21 @@ export async function runAiPipeline({ itemId, userId }: AiInput): Promise<void> 
       suggested_actions_md: c.suggested_actions_md ?? null,
       confidence: c.confidence,
     }));
-    await supabase.from("insight_cards").insert(rows);
+    const { error: cardsErr } = await supabase.from("insight_cards").insert(rows);
+    if (cardsErr) {
+      await captureError(
+        "ai.save_insights",
+        cardsErr,
+        { itemId, version: nextVersion, cardCount: rows.length },
+        userId,
+      );
+      savedCardCount = 0;
+    }
   }
   await logEvent("ai.insights.completed", userId, {
     itemId,
     version: nextVersion,
-    cardCount: insights?.cards.length ?? 0,
+    cardCount: savedCardCount,
   });
 }
 
@@ -165,7 +181,13 @@ async function runEmbeddings({
       embedding: vectors[j].vector as unknown as string, // pgvector accepts number[] serialized
     }));
     // supabase-js sends as JSON; pgvector input accepts the array literal "[..]" or a JSON array.
-    await supabase.from("embeddings").upsert(rows as never);
+    const { error: embErr } = await supabase.from("embeddings").upsert(rows as never);
+    if (embErr) {
+      // Later batches will likely fail the same way; bail out of embeddings
+      // (not the whole pipeline — summary/insights still run).
+      await captureError("ai.save_embeddings", embErr, { itemId, batchStart: i }, userId);
+      return;
+    }
   }
 }
 
@@ -288,29 +310,29 @@ async function nextAiVersion(itemId: string): Promise<number> {
   return (data?.version ?? 0) + 1;
 }
 
-async function saveTags(itemId: string, userId: string, tags: string[]): Promise<void> {
-  if (!tags.length) return;
+export async function saveTags(itemId: string, userId: string, tags: string[]): Promise<void> {
+  const clean = [...new Set(tags.map((n) => n.trim().toLowerCase().slice(0, 60)).filter(Boolean))];
+  if (!clean.length) return;
   const supabase = createServiceClient();
-  for (const name of tags) {
-    const clean = name.trim().toLowerCase().slice(0, 60);
-    if (!clean) continue;
-    const { data: existing } = await supabase
-      .from("tags")
-      .select("id")
-      .eq("user_id", userId)
-      .eq("name", clean)
-      .maybeSingle();
-    let tagId = existing?.id;
-    if (!tagId) {
-      const { data: created } = await supabase
-        .from("tags")
-        .insert({ user_id: userId, name: clean })
-        .select("id")
-        .single();
-      tagId = created?.id;
-    }
-    if (tagId) {
-      await supabase.from("item_tags").upsert({ item_id: itemId, tag_id: tagId, source: "ai" });
-    }
+
+  // One upsert that absorbs the `unique (user_id, name)` constraint instead of
+  // racing it with a SELECT-then-INSERT per tag.
+  const { data: tagRows, error: tagErr } = await supabase
+    .from("tags")
+    .upsert(
+      clean.map((name) => ({ user_id: userId, name })),
+      { onConflict: "user_id,name", ignoreDuplicates: false },
+    )
+    .select("id, name");
+  if (tagErr || !tagRows) {
+    await captureError("ai.save_tags", tagErr ?? new Error("no rows"), { itemId }, userId);
+    return;
+  }
+
+  const { error: itemTagErr } = await supabase
+    .from("item_tags")
+    .upsert(tagRows.map((t) => ({ item_id: itemId, tag_id: t.id, source: "ai" as const })));
+  if (itemTagErr) {
+    await captureError("ai.save_item_tags", itemTagErr, { itemId }, userId);
   }
 }
