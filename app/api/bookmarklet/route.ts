@@ -16,7 +16,11 @@ import { logEvent } from "@/lib/events";
 
 const querySchema = z.object({
   u: z.string().min(4).max(2048),
-  t: z.string().min(10),
+  t: z
+    .string()
+    .min(40)
+    .max(256)
+    .regex(/^[A-Za-z0-9_-]+\.[0-9a-f]{32}$/),
 });
 
 export async function GET(request: NextRequest) {
