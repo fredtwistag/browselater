@@ -9,6 +9,7 @@ export type EventName =
   | "extract.failed"
   | "ai.summary.started"
   | "ai.summary.completed"
+  | "ai.summary.failed"
   | "ai.insights.started"
   | "ai.insights.completed"
   | "ai.rerun"
